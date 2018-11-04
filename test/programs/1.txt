@@ -1,0 +1,6 @@
+ab := b + c;
+if(a + b) = c
+begin
+c = 2
+end
+
