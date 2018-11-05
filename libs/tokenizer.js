@@ -15,8 +15,8 @@ const TokenType = Object.freeze({
   OP: 'OP',
 });
 
-const opSet = new Set(['(', ')', '+', '-', '*', '/', ':=', '=', '<', '>', '<=', '>=', '#', ';']);
-const keywordSet = new Set(['CONST', 'VAR', 'procedure', 'begin', 'end',
+const opSet = new Set(['(', ')', '+', '-', '*', '/', ':=', '=', '<', '>', '<=', '>=', '#', ';', ',', '.', '[', ']']);
+const keywordSet = new Set(['const', 'var', 'procedure', 'begin', 'end',
                             'if', 'then', 'call', 'while', 'read', 'write']);
 
 class TokenizerException extends Error {
@@ -73,6 +73,9 @@ class Tokenizer extends EventEmitter {
           case ';':
           case ',':
           case '#':
+          case '[':
+          case ']':
+          case '.':
             this.putToken(c, this.startIdx);
             ++this.startIdx;
             break;
@@ -150,7 +153,7 @@ class Tokenizer extends EventEmitter {
     this.src += c;
   }
 
-  finalize() {
+  finalize(cb) {
     const { startIdx } = this;
     switch(this.state) {
       case State.ID:
@@ -160,6 +163,7 @@ class Tokenizer extends EventEmitter {
         this.putToken(this.src.slice(startIdx), startIdx);
         break;
     }
+    cb();
   }
 
   _getLastChar() {
@@ -179,21 +183,43 @@ class TokenizerStream extends Transform {
     this.push(Buffer.from(JSON.stringify(token)));
   }
 
-  _transform(data, encoding, callback) {
+  _transform(data, encoding, cb) {
     const str = data.toString();
     for(let i = 0; i < str.length; ++i) {
       this.tokenizer.putChar(str[i]);
     }
-    callback();
+    cb();
   }
 
-  _flush() {
-    this.tokenizer.finalize();
+  _flush(cb) {
+    this.tokenizer.finalize(cb);
   }
 };
+
+class TokenizerPrinter extends Transform {
+  constructor(options) {
+    super(options);
+    this.tokens = [];
+    this.ids = [];
+  }
+
+  _transform(data, encoding, cb) {
+    this.tokens.push(JSON.parse(data.toString()));
+    this.push(data);
+    cb();
+  }
+
+  _flush(cb) {
+    // print
+    console.log('---------', 'TokenizerPrinter', '---------')
+    console.log(this.tokens)
+    cb();
+  }
+}
 
 module.exports = {
   Tokenizer,
   TokenizerStream,
+  TokenizerPrinter,
   TokenizerException,
 };

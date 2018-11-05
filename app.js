@@ -1,12 +1,15 @@
+const glob = require('glob');
 const fs = require('fs');
-const { TokenizerStream } = require('./libs/tokenizer');
+const { TokenizerStream, TokenizerPrinter, TokenizerException } = require('./libs/tokenizer');
 
-try {
-  fs.createReadStream('test/programs/1.txt')
-    .pipe(new TokenizerStream())
-    .pipe(process.stdout);
-} catch(err) {
-  if(err instanceof TokenizerException) {
+glob.sync('test/programs/*.txt').forEach(src => {
+  try {
+    fs.createReadStream(src)
+      .pipe(new TokenizerStream())
+      .pipe(new TokenizerPrinter());
+  } catch(err) {
+    if(err instanceof TokenizerException) {
+    }
+    console.log('err', err);
   }
-  console.log('err', err);
-}
+});
