@@ -17,7 +17,7 @@ const TokenType = Object.freeze({
 
 const opSet = new Set(['(', ')', '+', '-', '*', '/', ':=', '=', '<', '>', '<=', '>=', '#', ';', ',', '.', '[', ']']);
 const keywordSet = new Set(['const', 'var', 'procedure', 'begin', 'end',
-                            'if', 'then', 'call', 'while', 'read', 'write']);
+                            'if', 'then', 'call', 'while', 'read', 'write', 'do']);
 
 class TokenizerException extends Error {
   constructor({ index, message }) {
@@ -43,9 +43,9 @@ class Tokenizer extends EventEmitter {
 
     let type = null;
     if(opSet.has(token)) {
-      type = TokenType.OP;
+      type = token;
     } else if(keywordSet.has(token)) {
-      type = TokenType.KEYWORD;
+      type = token;
     } else if(/^[0-9]+$/.test(token)) {
       type = TokenType.NUM;
     } else if(/^[a-zA-Z]{1,10}$/.test(token)) {
@@ -90,10 +90,10 @@ class Tokenizer extends EventEmitter {
             ++this.startIdx;
             break;
           default:
-            if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
               this.setState(State.ID);
               this.startIdx = this.src.length;
-            } else if(c >= '0' && c <= '9') {
+            } else if (c >= '0' && c <= '9') {
               this.setState(State.INTEGER);
               this.startIdx = this.src.length;
             } else {
@@ -124,7 +124,10 @@ class Tokenizer extends EventEmitter {
             this.setState(State.BEGIN);
             break;
           default:
-            // TODO: error
+            console.log('lastChar:', this._getLastChar());
+            this.putToken(this._getLastChar());
+            this.setState(State.BEGIN);
+            return this.putChar(c);
         }
         break;
       case State.ID:
@@ -211,13 +214,14 @@ class TokenizerPrinter extends Transform {
 
   _flush(cb) {
     // print
-    console.log('---------', 'TokenizerPrinter', '---------')
-    console.log(this.tokens)
+    console.log('---------', 'TokenizerPrinter', '---------');
+    console.log(this.tokens);
     cb();
   }
 }
 
 module.exports = {
+  TokenType,
   Tokenizer,
   TokenizerStream,
   TokenizerPrinter,
