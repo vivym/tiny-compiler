@@ -1,197 +1,34 @@
-const EventEmitter = require('events').EventEmitter;
 const Transform = require('stream').Transform;
-const { TokenType } = require('./tokenizer');
-const fs = require('fs');
+const { TokenType } = require('../tokenizer');
 
-class Node {
-  constructor () {
-    this.chs = [];
-  }
-
-  push (node) {
-    this.chs.push(node);
-  }
-}
-
-class Program extends Node {
-  constructor () {
-    super();
-    this.type = 'Program';
-  }
-}
-
-class Subprogram extends Node {
-  constructor () {
-    super();
-    this.type = 'Subprogram';
-  }
-}
-
-class ConstDecls extends Node {
-  constructor () {
-    super();
-    this.type = 'ConstDecls';
-  }
-}
-
-class ConstDecl extends Node {
-  constructor () {
-    super();
-    this.type = 'ConstDecl';
-  }
-}
-
-class VarDecls extends Node {
-  constructor () {
-    super();
-    this.type = 'VarDecls';
-  }
-}
-
-class ProcedureDecls extends Node {
-  constructor () {
-    super();
-    this.type = 'ProcedureDecls';
-  }
-}
-
-class ProcedureDecl extends Node {
-  constructor () {
-    super();
-    this.type = 'ProcedureDecl';
-  }
-}
-
-class ProcedureHeader extends Node {
-  constructor () {
-    super();
-    this.type = 'ProcedureHeader';
-  }
-}
-
-class Stmts extends Node {
-  constructor () {
-    super();
-    this.type = 'Stmts';
-  }
-}
-
-class Stmt extends Node {
-  constructor () {
-    super();
-    this.type = 'Stmt';
-  }
-}
-
-class ReadStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'ReadStmt';
-  }
-}
-
-class WriteStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'WriteStmt';
-  }
-}
-
-class CallStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'CallStmt';
-  }
-}
-
-class WhileStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'WhileStmt';
-  }
-}
-
-class AssignStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'AssignStmt';
-  }
-}
-
-class CondStmt extends Stmt {
-  constructor () {
-    super();
-    this.type = 'CondStmt';
-  }
-}
-
-class Expr extends Node {
-  constructor () {
-    super();
-    this.type = 'Expr';
-  }
-}
-
-class CondExpr extends Expr {
-  constructor () {
-    super();
-    this.type = 'CondExpr';
-  }
-}
-
-class Term extends Node {
-  constructor () {
-    super();
-    this.type = 'Term';
-  }
-}
-
-class Factor extends Node {
-  constructor () {
-    super();
-    this.type = 'Factor';
-  }
-}
-
-class Id extends Node {
-  constructor (token) {
-    super();
-    this.token = token;
-    this.type = 'Id';
-  }
-}
-
-class Num extends Node {
-  constructor (token) {
-    super();
-    this.token = token;
-    this.type = 'Num';
-  }
-}
-
-class CondOp extends Node {
-  constructor (token) {
-    super();
-    this.token = token;
-    this.type = 'CondOp';
-  }
-}
-
-class UnaryOp extends Node {
-  constructor (token) {
-    super();
-    this.token = token;
-    this.type = 'UnaryOp';
-  }
-}
-
-class BinaryOp extends Node {
-  constructor (token) {
-    super();
-    this.token = token;
-    this.type = 'BinaryOp';
-  }
-}
+const {
+  Node,
+  Program,
+  Subprogram,
+  ConstDecls,
+  ConstDecl,
+  VarDecls,
+  ProcedureDecls,
+  ProcedureDecl,
+  ProcedureHeader,
+  Stmts,
+  Stmt,
+  ReadStmt,
+  WriteStmt,
+  CallStmt,
+  WhileStmt,
+  AssignStmt,
+  CondStmt,
+  Expr,
+  CondExpr,
+  Term,
+  Factor,
+  Id,
+  Num,
+  CondOp,
+  UnaryOp,
+  BinaryOp,
+} = require('./nodes');
 
 class AstException extends Error {
   constructor({ message }) {
@@ -513,45 +350,11 @@ class AstGenerator extends Transform {
     console.log('---------', 'AST Generating', '---------');
     const parser = new Parser(this.tokens);
     const ast = parser.program();
-    const printer = new AstPrinter();
-    printer.print(ast);
+    console.log('---------', 'AST Done', '---------');
     cb();
   }
 }
 
-class AstPrinter {
-  constructor () {
-    this.fs = fs.createWriteStream('./generated/ast.dot');
-    this.nodes = new Map();
-  }
-
-  dfs1 (x) {
-    const id = this.nodes.size;
-    this.nodes.set(x, id);
-    this.fs.write(`${id} [label="${x.type}"];\n`);
-    x.chs.forEach(c => c && this.dfs1(c));
-  }
-
-  dfs2 (x) {
-    const id = this.nodes.get(x);
-    x.chs.forEach(c => {
-      if (c) {
-        this.fs.write(`${id}->${this.nodes.get(c)};\n`);
-        this.dfs2(c);
-      }
-    });
-  }
-  
-  print (ast) {
-    this.fs.write('digraph ast {\n');
-    this.dfs1(ast);
-    this.dfs2(ast);
-    this.fs.write('}');
-  }
-}
-
-
 module.exports = {
   AstGenerator,
-  AstPrinter,
 };
