@@ -1,5 +1,6 @@
-const Transform = require('stream').Transform;
+const { Transform } = require('stream');
 const { TokenType } = require('../tokenizer');
+const AstPrinter = require('./printer');
 
 const {
   Node,
@@ -40,6 +41,17 @@ class Parser {
   constructor (tokens) {
     this.tokens = tokens;
     this.lookptr = 0;
+    this.insts = [];
+  }
+
+  emit (func, level, offset) {
+    const inst = { func, level, offset };
+    this.insts.push(inst);
+    return inst;
+  }
+
+  address () {
+    return this.insts.length;
   }
 
   lookahead () {
@@ -75,11 +87,14 @@ class Parser {
   }
 
   program () {
-    return this.subprogram();
+    const program = new Program(this);
+    program.push(this.subprogram());
+    this.match('.');
+    return program;
   }
 
   subprogram () {
-    const sub = new Subprogram();
+    const sub = new Subprogram(this);
     if (this.lookahead().type === 'const') {
       sub.push(this.constDecls());
     }
@@ -94,7 +109,7 @@ class Parser {
   }
 
   constDecls () {
-    const decls = new ConstDecls();
+    const decls = new ConstDecls(this);
     this.match('const');
     decls.push(this.constDecl());
     while (this.lookahead().type === ',') {
@@ -106,7 +121,7 @@ class Parser {
   }
 
   constDecl () {
-    const decl = new ConstDecl();
+    const decl = new ConstDecl(this);
     decl.push(this.id());
     this.match('=');
     decl.push(this.num());
@@ -114,7 +129,7 @@ class Parser {
   }
 
   varDecls () {
-    const decls = new VarDecls();
+    const decls = new VarDecls(this);
     this.match('var');
     decls.push(this.id());
     while (this.lookahead().type === ',') {
@@ -126,13 +141,13 @@ class Parser {
   }
 
   procedureDecls () {
-    const decls = new ProcedureDecls();
+    const decls = new ProcedureDecls(this);
     decls.push(this.procedureDecl());
     return decls;
   }
 
   procedureDecl () {
-    const decl = new ProcedureDecl();
+    const decl = new ProcedureDecl(this);
     decl.push(this.procedureHeader());
     decl.push(this.subprogram());
     this.match(';');
@@ -140,7 +155,7 @@ class Parser {
   }
 
   procedureHeader () {
-    const header = new ProcedureHeader();
+    const header = new ProcedureHeader(this);
     this.match('procedure');
     header.push(this.id());
     this.match(';');
@@ -156,7 +171,7 @@ class Parser {
   }
 
   stmts () {
-    const stmts = new Stmts();
+    const stmts = new Stmts(this);
     this.match('begin');
     stmts.push(this.statements());
 
@@ -187,7 +202,7 @@ class Parser {
   }
 
   condStmt () {
-    const stmt = new CondStmt();
+    const stmt = new CondStmt(this);
     this.match('if');
     stmt.push(this.condExpr());
     this.match('then');
@@ -196,7 +211,7 @@ class Parser {
   }
 
   assignStmt () {
-    const stmt = new AssignStmt();
+    const stmt = new AssignStmt(this);
     stmt.push(this.id());
     this.match(':=');
     stmt.push(this.expr());
@@ -204,7 +219,7 @@ class Parser {
   }
 
   whileStmt () {
-    const stmt = new WhileStmt();
+    const stmt = new WhileStmt(this);
     this.match('while');
     stmt.push(this.condExpr());
     this.match('do');
@@ -213,7 +228,7 @@ class Parser {
   }
 
   readStmt () {
-    const stmt = new ReadStmt();
+    const stmt = new ReadStmt(this);
     this.match('read');
     this.match('(');
     stmt.push(this.id());
@@ -226,7 +241,7 @@ class Parser {
   }
 
   writeStmt () {
-    const stmt = new WriteStmt();
+    const stmt = new WriteStmt(this);
     this.match('write');
     this.match('(');
     stmt.push(this.expr());
@@ -239,14 +254,14 @@ class Parser {
   }
 
   callStmt () {
-    const stmt = new CallStmt();
+    const stmt = new CallStmt(this);
     this.match('call');
     stmt.push(this.id());
     return stmt;
   }
 
   expr () {
-    const expr = new Expr();
+    const expr = new Expr(this);
     if (this.lookahead().type === '+' || this.lookahead().type === '-') {
       expr.push(this.unaryOp());
     }
@@ -259,9 +274,9 @@ class Parser {
   }
 
   condExpr () {
-    const expr = new CondExpr();
+    const expr = new CondExpr(this);
     if (this.lookahead().type === 'odd') {
-      expr.push(this.binaryOp());
+      expr.push(this.unaryOp());
       expr.push(this.expr());
     } else {
       expr.push(this.expr());
@@ -272,7 +287,7 @@ class Parser {
   }
 
   term () {
-    const term = new Term();
+    const term = new Term(this);
     term.push(this.factor());
     while (this.lookahead().type === '*' || this.lookahead().type === '/') {
       term.push(this.binaryOp());
@@ -282,7 +297,7 @@ class Parser {
   }
 
   factor () {
-    const factor = new Factor();
+    const factor = new Factor(this);
     if (this.lookahead().type === '(') {
       this.match('(');
       factor.push(this.expr());
@@ -296,18 +311,18 @@ class Parser {
   }
 
   id () {
-    return new Id(this.match(TokenType.ID));
+    return new Id(this, this.match(TokenType.ID));
   }
 
   num () {
-    return new Num(this.match(TokenType.NUM));
+    return new Num(this, this.match(TokenType.NUM));
   }
 
   unaryOp () {
     const token = this.lookahead();
     this.move();
     if (token.type === '+' || token.type === '-' || token.type === 'odd') {
-      return new UnaryOp(token);
+      return new UnaryOp(this, token);
     } else {
       throw new AstException({ message: `invalid unaryOp: ${JSON.stringify(token)}` });
     }
@@ -317,7 +332,7 @@ class Parser {
     const token = this.lookahead();
     this.move();
     if (token.type === '+' || token.type === '-' || token.type === '*' || token.type === '/') {
-      return new BinaryOp(token);
+      return new BinaryOp(this, token);
     } else {
       throw new AstException({ message: `invalid binaryOp: ${JSON.stringify(token)}` });
     }
@@ -327,7 +342,7 @@ class Parser {
     const token = this.lookahead();
     this.move();
     if (token.type === '=' || token.type === '#' || token.type === '<' || token.type === '<=' || token.type === '>' || token.type === '>=') {
-      return new CondOp(token);
+      return new CondOp(this, token);
     } else {
       throw new AstException({ message: `invalid condOp: ${JSON.stringify(token)}` });
     }
@@ -346,11 +361,11 @@ class AstGenerator extends Transform {
   }
 
   _flush(cb) {
-    // print
-    console.log('---------', 'AST Generating', '---------');
     const parser = new Parser(this.tokens);
     const ast = parser.program();
-    console.log('---------', 'AST Done', '---------');
+    ast.gen();
+    // console.log(parser.insts.map(inst => `${inst.func} ${inst.level} ${inst.offset}`).join('\n'));
+    this.push(Buffer.from(JSON.stringify(parser.insts)));
     cb();
   }
 }

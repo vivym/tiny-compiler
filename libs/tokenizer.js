@@ -1,5 +1,5 @@
-const EventEmitter = require('events').EventEmitter;
-const Transform = require('stream').Transform;
+const { EventEmitter } = require('events');
+const { Transform } = require('stream');
 
 const State = Object.freeze({
   BEGIN: 'BEGIN',
@@ -124,7 +124,6 @@ class Tokenizer extends EventEmitter {
             this.setState(State.BEGIN);
             break;
           default:
-            console.log('lastChar:', this._getLastChar());
             this.putToken(this._getLastChar());
             this.setState(State.BEGIN);
             return this.putChar(c);

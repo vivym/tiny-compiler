@@ -1,4 +1,32 @@
 const fs = require('fs');
+const {
+  Node,
+  Program,
+  Subprogram,
+  ConstDecls,
+  ConstDecl,
+  VarDecls,
+  ProcedureDecls,
+  ProcedureDecl,
+  ProcedureHeader,
+  Stmts,
+  Stmt,
+  ReadStmt,
+  WriteStmt,
+  CallStmt,
+  WhileStmt,
+  AssignStmt,
+  CondStmt,
+  Expr,
+  CondExpr,
+  Term,
+  Factor,
+  Id,
+  Num,
+  CondOp,
+  UnaryOp,
+  BinaryOp,
+} = require('./nodes');
 
 class AstPrinter {
   constructor () {
@@ -77,3 +105,5 @@ class AstPrinter {
     this.fs.write('}');
   }
 }
+
+module.exports = AstPrinter;
