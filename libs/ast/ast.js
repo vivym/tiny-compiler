@@ -364,7 +364,8 @@ class AstGenerator extends Transform {
     const parser = new Parser(this.tokens);
     const ast = parser.program();
     ast.gen();
-    // console.log(parser.insts.map(inst => `${inst.func} ${inst.level} ${inst.offset}`).join('\n'));
+    console.log(parser.insts.map(inst => `${inst.func} ${inst.level} ${inst.offset}`).join('\n'));
+    parser
     this.push(Buffer.from(JSON.stringify(parser.insts)));
     cb();
   }

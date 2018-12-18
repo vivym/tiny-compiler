@@ -1,6 +1,7 @@
 const a=1;
 var m,n,r,q;
 procedure gcd;
+var v1,v2;
 begin
   while r#0 do
     begin
@@ -9,6 +10,9 @@ begin
       m:=n;
       n:=r;
     end;
+  v1:=1;
+  v2:=2;
+  write(v1+v2);
 end;
 begin
   read(m,n);

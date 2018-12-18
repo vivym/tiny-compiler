@@ -48,7 +48,7 @@ class Tokenizer extends EventEmitter {
       type = token;
     } else if(/^[0-9]+$/.test(token)) {
       type = TokenType.NUM;
-    } else if(/^[a-zA-Z]{1,10}$/.test(token)) {
+    } else if(/^[a-zA-Z0-9]{1,10}$/.test(token)) {
       type = TokenType.ID;
     } else {
       console.log('invalid token:', token);
@@ -130,7 +130,7 @@ class Tokenizer extends EventEmitter {
         }
         break;
       case State.ID:
-        if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+        if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
           // stay still
         } else {
           this.putToken(this.src.slice(this.startIdx));

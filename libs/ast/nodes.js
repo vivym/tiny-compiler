@@ -30,6 +30,8 @@ class Program extends Node {
     env.put('read_memory');
     env.put('write_memory');
     this.chs.forEach(sub => sub.gen(env));
+    console.log('env:');
+    console.log(env);
   }
 }
 
@@ -45,6 +47,8 @@ class Subprogram extends Node {
     this.chs.forEach(node => node.gen(env));
     int.offset = env.table.size;
     this.emit('OPR', 0, 0);
+    console.log('env:');
+    console.log(env);
   }
 }
 
